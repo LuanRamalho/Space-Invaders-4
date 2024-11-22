@@ -4,36 +4,64 @@ import sys
 
 import pygame
 
+import json
+
 from alien import Aliens
 from config import *
 from decor import Ground, Barricades
 from spaceship import Spaceship
 from ui import Score, LifeCounter, HighScore, GameOver
 
+class HighScore:
+    def __init__(self, file_path="highscore.json"):
+        self.file_path = file_path
+        self.value = self._load_high_score()
+
+    def _load_high_score(self):
+        """Carrega o high score do arquivo JSON."""
+        try:
+            with open(self.file_path, "r") as file:
+                data = json.load(file)
+                return data.get("high_score", 0)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return 0
+
+    def save_high_score(self):
+        """Salva o high score no arquivo JSON."""
+        with open(self.file_path, "w") as file:
+            json.dump({"high_score": self.value}, file)
+
+    def draw(self, surface):
+        """Exibe o high score na tela com duas linhas."""
+        font = pygame.font.Font(None, 36)
+
+        # Texto da primeira linha
+        text1 = font.render("High Score", True, (255, 255, 255))
+        # Texto da segunda linha
+        text2 = font.render(str(self.value), True, (255, 255, 255))
+
+        # Posicionando os textos
+        surface.blit(text1, (250, 10))  # Primeira linha, um pouco mais acima
+        surface.blit(text2, (300, 50))  # Segunda linha, um pouco mais abaixo
 
 class PySpaceInvaders:
 
     def __init__(self):
-
-        # We create a surface in which sprites will be shown
+        # Outras inicializações permanecem inalteradas
         self.window_surface = pygame.display.set_mode(WINDOW_SIZE)
-
-        # Variables for game loop
         self.update_time_delay = 0
         self.draw_time_delay = 0
-
-        # Game state variable
         self.is_game_over = False
         self.delay_since_game_over = 0
         self.is_playing = True
 
-        # We create the game entities
+        # Inicialização das entidades do jogo
         self.spaceship = Spaceship()
         self.aliens = Aliens()
         self.ground = Ground()
         self.barricades = Barricades()
         self.score = Score()
-        self.high_score = HighScore()
+        self.high_score = HighScore()  # Alteração aqui
         self.life_counter = LifeCounter()
         self.game_over = GameOver()
 
@@ -307,19 +335,21 @@ class PySpaceInvaders:
         barricade.sprite = pygame.surfarray.make_surface(surf_array)
 
     def _game_over(self):
+        """Função chamada quando o jogo termina."""
         self.is_game_over = True
         self.is_playing = False
         if self.score.value > self.high_score.value:
             self.high_score.value = self.score.value
+            self.high_score.save_high_score()  # Salvar o novo HighScore
+
 
     def _reset(self):
-
+        """Reseta o jogo para uma nova tentativa."""
         self.spaceship = Spaceship()
         self.aliens.reset()
         self.barricades = Barricades()
         self.score = Score()
         self.life_counter = LifeCounter()
-
         self.is_game_over = False
         self.delay_since_game_over = 0
         self.is_playing = True
